@@ -152,7 +152,7 @@ after_initialize do
     def validate_each(record, attribute, value)
       if record.new_record? || record.will_save_change_to_attribute?(attribute)
         email_hash = PIIEncryption.hash_email(value)
-        if UserEmail.exists?(test_email: email_hash)
+        if UserEmail.where(test_email: email_hash).exists?
           record.errors.add(attribute, :taken)
         end
       end
