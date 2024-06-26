@@ -156,6 +156,8 @@ after_initialize do
         if UserEmail.where(test_email: email_hash).exists?
           Rails.logger.info "PIIEncryption: Email hash already taken: #{email_hash}"
           record.errors.add(attribute, :taken)
+        else
+          Rails.logger.info "PIIEncryption: Email hash available: #{email_hash}"
         end
       end
     end
