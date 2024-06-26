@@ -70,7 +70,7 @@ after_initialize do
       http = Net::HTTP.new(uri.host, uri.port)
 
       request = Net::HTTP::Post.new(uri.path, 'Content-Type' => 'application/json')
-      request.body = { data: encrypted_email }.to_json
+      request.body = { data: encrypted_email, pii_type: "email" }.to_json
       Rails.logger.info "PIIEncryption: Sending decryption request for encrypted email: #{encrypted_email}"
       response = http.request(request)
 
@@ -84,7 +84,7 @@ after_initialize do
   end
 
   class ::UserEmail
-    before_save :encrypt_email_address
+    before_save :encrypt_email_address, if: :email_changed?
 
     def email
       @decrypted_email ||= PIIEncryption.decrypt_email(read_attribute(:email))
@@ -129,7 +129,13 @@ after_initialize do
       Rails.logger.info "PIIEncryption: Comparing input hash #{input_hash} with stored hash #{stored_hash}"
       input_hash == stored_hash
     end
+
+    def save_with_validation
+      self.email = decrypted_email if email_changed?
+      save
+    end
   end
 
   ::User.prepend(::PIIEncryption::UserPatch)
 end
+
