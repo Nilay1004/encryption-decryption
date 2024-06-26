@@ -58,8 +58,8 @@ after_initialize do
       Rails.logger.info "PIIEncryption: Sending hash request for email: #{email}"
       response = http.request(request)
 
-      email_hash = JSON.parse(response.body)["email_hash"]
-      Rails.logger.info "PIIEncryption: Email hash: #{hashed_data}"
+      email_hash = JSON.parse(response.body)["hashed_data"]
+      Rails.logger.info "PIIEncryption: Email hash: #{email_hash}"
       email_hash
     rescue StandardError => e
       Rails.logger.error "Error hashing email: #{e.message}"
@@ -87,6 +87,9 @@ after_initialize do
   end
 
   class ::UserEmail
+    before_validation :set_temporary_email_for_validation, if: :email_changed?
+    after_validation :restore_encrypted_email, if: :email_changed?
+
     before_save :encrypt_email_address, if: :email_changed?
 
     def email
@@ -107,13 +110,20 @@ after_initialize do
 
     private
 
+    def set_temporary_email_for_validation
+      @original_email = read_attribute(:email)
+      write_attribute(:email, @decrypted_email)
+    end
+
+    def restore_encrypted_email
+      write_attribute(:email, @original_email)
+    end
+
     def encrypt_email_address
-      if email_changed?
-        encrypted_email = PIIEncryption.encrypt_email(@decrypted_email)
-        email_hash = PIIEncryption.hash_email(@decrypted_email)
-        write_attribute(:email, encrypted_email)
-        write_attribute(:test_email, email_hash)
-      end
+      encrypted_email = PIIEncryption.encrypt_email(@decrypted_email)
+      email_hash = PIIEncryption.hash_email(@decrypted_email)
+      write_attribute(:email, encrypted_email)
+      write_attribute(:test_email, email_hash)
     end
   end
 
@@ -132,14 +142,10 @@ after_initialize do
       Rails.logger.info "PIIEncryption: Comparing input hash #{input_hash} with stored hash #{stored_hash}"
       input_hash == stored_hash
     end
-
-    def save_with_validation
-      self.email = decrypted_email if email_changed?
-      save
-    end
   end
 
   ::User.prepend(::PIIEncryption::UserPatch)
 end
+
 
 
