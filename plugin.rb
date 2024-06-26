@@ -10,8 +10,11 @@
 
 enabled_site_setting :plugin_name_enabled
 
-module ::MyPluginModule
-  PLUGIN_NAME = "discourse-plugin-name-darshan"
+# Avoid defining constants multiple times
+unless defined?(::MyPluginModule)
+  module ::MyPluginModule
+    PLUGIN_NAME = "discourse-plugin-name-darshan"
+  end
 end
 
 require_relative "lib/my_plugin_module/engine"
@@ -55,8 +58,8 @@ after_initialize do
       Rails.logger.info "PIIEncryption: Sending hash request for email: #{email}"
       response = http.request(request)
 
-      email_hash = JSON.parse(response.body)["hashed_data"]
-      Rails.logger.info "PIIEncryption: Email hash: #{email_hash}"
+      email_hash = JSON.parse(response.body)["email_hash"]
+      Rails.logger.info "PIIEncryption: Email hash: #{hashed_data}"
       email_hash
     rescue StandardError => e
       Rails.logger.error "Error hashing email: #{e.message}"
@@ -70,7 +73,7 @@ after_initialize do
       http = Net::HTTP.new(uri.host, uri.port)
 
       request = Net::HTTP::Post.new(uri.path, 'Content-Type' => 'application/json')
-      request.body = { data: encrypted_email, pii_type: "email" }.to_json
+      request.body = { data: encrypted_email }.to_json
       Rails.logger.info "PIIEncryption: Sending decryption request for encrypted email: #{encrypted_email}"
       response = http.request(request)
 
@@ -119,7 +122,7 @@ after_initialize do
       if new_record?
         read_attribute(:email)
       else
-        super
+        PIIEncryption.decrypt_email(read_attribute(:email))
       end
     end
 
@@ -138,4 +141,5 @@ after_initialize do
 
   ::User.prepend(::PIIEncryption::UserPatch)
 end
+
 
