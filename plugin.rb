@@ -145,6 +145,19 @@ after_initialize do
   end
 
   ::User.prepend(::PIIEncryption::UserPatch)
+
+  # Override UserEmail uniqueness validation to use decrypted email
+  require_dependency 'email_validator'
+  class ::EmailValidator
+    def validate_each(record, attribute, value)
+      if record.new_record? || record.will_save_change_to_attribute?(attribute)
+        decrypted_email = PIIEncryption.decrypt_email(value)
+        if UserEmail.exists?(email: PIIEncryption.encrypt_email(decrypted_email))
+          record.errors.add(attribute, :taken)
+        end
+      end
+    end
+  end
 end
 
 
