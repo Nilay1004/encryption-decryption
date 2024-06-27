@@ -28,8 +28,6 @@ after_initialize do
   require_dependency 'user_email'
   require_dependency 'auth/default_current_user_provider'
   require_dependency 'email_validator'
-  require_dependency 'email_token'
-  require_dependency 'email_tokens_controller'
 
   module ::PIIEncryption
     def self.encrypt_email(email)
@@ -168,7 +166,7 @@ after_initialize do
   end
 
   # Override EmailTokensController for activation process
-  require_dependency 'email_tokens_controller'
+  require_dependency 'email_token'
   class ::EmailTokensController
     alias_method :original_confirm, :confirm
 
