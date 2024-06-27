@@ -26,6 +26,8 @@ require 'json'
 after_initialize do
   Rails.logger.info "PIIEncryption: Plugin initialized"
   require_dependency 'user_email'
+  require_dependency 'auth/default_current_user_provider'
+  require_dependency 'email_validator'
 
   module ::PIIEncryption
     def self.encrypt_email(email)
@@ -127,8 +129,27 @@ after_initialize do
     end
   end
 
+  module ::PIIEncryption::AuthPatch
+    def find_verified_user
+      result = super
+      return result if result
+
+      if email.present?
+        email_hash = PIIEncryption.hash_email(email)
+        Rails.logger.info "PIIEncryption: Hashing email for login: #{email_hash}"
+        user_email_record = UserEmail.find_by(test_email: email_hash)
+        if user_email_record
+          return User.find(user_email_record.user_id)
+        end
+      end
+
+      nil
+    end
+  end
+
+  Auth::DefaultCurrentUserProvider.prepend(::PIIEncryption::AuthPatch)
+
   # Override UserEmail uniqueness validation to use hashed email
-  require_dependency 'email_validator'
   class ::EmailValidator
     def validate_each(record, attribute, value)
       if record.new_record? || record.will_save_change_to_attribute?(attribute)
