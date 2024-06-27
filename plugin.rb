@@ -149,7 +149,6 @@ after_initialize do
   end
 
   # Add this at the bottom of plugin.rb to override the SessionController
-after_initialize do
   require_dependency 'session_controller'
   class ::SessionController
     alias_method :original_create, :create
@@ -169,6 +168,7 @@ after_initialize do
   end
 
   # Override EmailTokensController for activation process
+  require_dependency 'email_tokens_controller'
   class ::EmailTokensController
     alias_method :original_confirm, :confirm
 
