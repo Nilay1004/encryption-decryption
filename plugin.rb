@@ -27,6 +27,7 @@ after_initialize do
   Rails.logger.info "PIIEncryption: Plugin initialized"
   require_dependency 'user_email'
   require_dependency 'auth/default_current_user_provider'
+  require_relative "app/serializers/user_serializer"
 
   module ::PIIEncryption
     def self.encrypt_email(email)
