@@ -127,25 +127,6 @@ after_initialize do
     end
   end
 
-  module ::PIIEncryption::UserPatch
-    def email
-      if new_record?
-        read_attribute(:email)
-      else
-        PIIEncryption.decrypt_email(read_attribute(:email))
-      end
-    end
-
-    def valid_email?(input_email)
-      stored_hash = read_attribute(:test_email)
-      input_hash = PIIEncryption.hash_email(input_email)
-      Rails.logger.info "PIIEncryption: Comparing input hash #{input_hash} with stored hash #{stored_hash}"
-      input_hash == stored_hash
-    end
-  end
-
-  ::User.prepend(::PIIEncryption::UserPatch)
-
   # Override UserEmail uniqueness validation to use hashed email
   require_dependency 'email_validator'
   class ::EmailValidator
