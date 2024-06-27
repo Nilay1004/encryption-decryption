@@ -167,4 +167,22 @@ after_initialize do
       original_create
     end
   end
+
+  # Override EmailTokensController for activation process
+  require_dependency 'email_tokens_controller'
+  class ::EmailTokensController
+    alias_method :original_confirm, :confirm
+
+    def confirm
+      token = EmailToken.find_by(token: params[:token])
+      if token && token.email.present?
+        decrypted_email = ::PIIEncryption.decrypt_email(token.email)
+        user_email_record = UserEmail.find_by(email: ::PIIEncryption.encrypt_email(decrypted_email))
+        if user_email_record
+          token.email = decrypted_email
+        end
+      end
+      original_confirm
+    end
+  end
 end
