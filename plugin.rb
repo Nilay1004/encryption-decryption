@@ -28,6 +28,8 @@ after_initialize do
   require_dependency 'user_email'
   require_dependency 'auth/default_current_user_provider'
   require_dependency 'email_validator'
+  require_dependency 'email_token'
+  require_dependency 'email_tokens_controller'
 
   module ::PIIEncryption
     def self.encrypt_email(email)
@@ -145,10 +147,8 @@ after_initialize do
       end
     end
   end
-end
 
-
-# Add this at the bottom of plugin.rb to override the SessionController
+  # Add this at the bottom of plugin.rb to override the SessionController
 after_initialize do
   require_dependency 'session_controller'
   class ::SessionController
@@ -169,7 +169,6 @@ after_initialize do
   end
 
   # Override EmailTokensController for activation process
-  require_dependency 'email_tokens_controller'
   class ::EmailTokensController
     alias_method :original_confirm, :confirm
 
