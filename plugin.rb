@@ -149,20 +149,22 @@ end
 
 
 # Add this at the bottom of plugin.rb to override the SessionController
-require_dependency 'session_controller'
-class ::SessionController
-  alias_method :original_create, :create
+after_initialize do
+  require_dependency 'session_controller'
+  class ::SessionController
+    alias_method :original_create, :create
 
-  def create
-    if params[:login].present?
-      email_hash = ::PIIEncryption.hash_email(params[:login])
-      Rails.logger.info "PIIEncryption: Hashing email for login: #{email_hash}"
-      user_email_record = UserEmail.find_by(test_email: email_hash)
-      if user_email_record
-        user = User.find(user_email_record.user_id)
-        params[:login] = user.username
+    def create
+      if params[:login].present?
+        email_hash = ::PIIEncryption.hash_email(params[:login])
+        Rails.logger.info "PIIEncryption: Hashing email for login: #{email_hash}"
+        user_email_record = UserEmail.find_by(test_email: email_hash)
+        if user_email_record
+          user = User.find(user_email_record.user_id)
+          params[:login] = user.username
+        end
       end
+      original_create
     end
-    original_create
   end
 end
