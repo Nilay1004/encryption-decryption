@@ -2,7 +2,7 @@
 
 require_dependency 'user_serializer'
 
-class ::UserSerializer
+class UserSerializer < BasicUserSerializer
   attributes :decrypted_email
 
   def decrypted_email
