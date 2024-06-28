@@ -18,6 +18,7 @@ unless defined?(::MyPluginModule)
 end
 
 require_relative "lib/my_plugin_module/engine"
+require_relative "app/serializers/user_serializer"
 
 require 'net/http'
 require 'uri'
@@ -27,7 +28,7 @@ after_initialize do
   Rails.logger.info "PIIEncryption: Plugin initialized"
   require_dependency 'user_email'
   require_dependency 'auth/default_current_user_provider'
-  require_relative "app/serializers/user_serializer"
+  require_dependency 'user_serializer'
 
   module ::PIIEncryption
     def self.encrypt_email(email)
@@ -162,6 +163,48 @@ after_initialize do
         end
       end
       original_create
+    end
+  end
+
+  require_dependency 'email_token'
+  class ::EmailTokensController
+    alias_method :original_confirm, :confirm
+
+    def confirm
+      token = EmailToken.find_by(token: params[:token])
+      if token && token.email.present?
+        decrypted_email = ::PIIEncryption.decrypt_email(token.email)
+        user_email_record = UserEmail.find_by(email: ::PIIEncryption.encrypt_email(decrypted_email))
+        if user_email_record
+          token.email = decrypted_email
+        end
+      end
+      original_confirm
+    end
+  end
+
+  # Ensure OIDC Plugin Compatibility
+  if defined?(Auth::OidcAuthenticator)
+    class ::Auth::OidcAuthenticator
+      alias_method :original_after_authenticate, :after_authenticate
+
+      def after_authenticate(auth_token)
+        result = original_after_authenticate(auth_token)
+        if result.email.present?
+          email_hash = PIIEncryption.hash_email(result.email)
+          Rails.logger.info "PIIEncryption: Checking hashed email for OIDC authentication: #{email_hash}"
+          user_email_record = UserEmail.find_by(test_email: email_hash)
+          if user_email_record
+            user = User.find(user_email_record.user_id)
+            result.user = user
+          else
+            encrypted_email = PIIEncryption.encrypt_email(result.email)
+            result.email = encrypted_email
+            result.extra_data[:test_email] = email_hash
+          end
+        end
+        result
+      end
     end
   end
 end
