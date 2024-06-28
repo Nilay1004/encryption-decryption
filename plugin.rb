@@ -18,7 +18,7 @@ unless defined?(::MyPluginModule)
 end
 
 require_relative "lib/my_plugin_module/engine"
-require_relative "app/serializers/user_serializer"
+
 
 require 'net/http'
 require 'uri'
@@ -28,7 +28,7 @@ after_initialize do
   Rails.logger.info "PIIEncryption: Plugin initialized"
   require_dependency 'user_email'
   require_dependency 'auth/default_current_user_provider'
-  require_dependency 'user_serializer'
+
 
   module ::PIIEncryption
     def self.encrypt_email(email)
