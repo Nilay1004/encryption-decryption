@@ -171,23 +171,32 @@ after_initialize do
   if defined?(Auth::OidcAuthenticator)
     class ::Auth::OidcAuthenticator
       alias_method :original_after_authenticate, :after_authenticate
-
+  
       def after_authenticate(auth_token)
         result = original_after_authenticate(auth_token)
+  
         if result.email.present?
           email_hash = PIIEncryption.hash_email(result.email)
           Rails.logger.info "PIIEncryption: Checking hashed email for OIDC authentication: #{email_hash}"
+          
           user_email_record = UserEmail.find_by(test_email: email_hash)
+
           if user_email_record
             user = User.find(user_email_record.user_id)
+            Rails.logger.info "PIIEncryption: Found user with email hash: #{email_hash}, User ID: #{user.id}"
             result.user = user
           else
+            Rails.logger.info "PIIEncryption: No user found with email hash: #{email_hash}. Encrypting email."
             encrypted_email = PIIEncryption.encrypt_email(result.email)
             result.email = encrypted_email
             result.extra_data[:test_email] = email_hash
           end
         end
+        
         result
+      rescue StandardError => e
+        Rails.logger.error "Error during OIDC authentication: #{e.message}"
+        raise e
       end
     end
   end
