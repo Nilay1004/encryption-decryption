@@ -28,6 +28,7 @@ after_initialize do
   Rails.logger.info "PIIEncryption: Plugin initialized"
   require_dependency 'user_email'
   require_dependency 'auth/default_current_user_provider'
+  require_dependency 'user_serializer'
 
 
   module ::PIIEncryption
@@ -198,6 +199,14 @@ after_initialize do
         Rails.logger.error "Error during OIDC authentication: #{e.message}"
         raise e
       end
+    end
+  end
+
+  class ::UserSerializer
+    attributes :decrypted_email
+
+    def decrypted_email
+      scope.is_staff? ? object.decrypted_email : nil
     end
   end
 end
