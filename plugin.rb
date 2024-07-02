@@ -206,7 +206,7 @@ after_initialize do
     attributes :decrypted_email
 
     def decrypted_email
-      scope.is_staff? ? object.decrypted_email : nil
+      object.decrypted_email if scope.is_staff?
     end
   end
 end
