@@ -128,41 +128,6 @@ after_initialize do
       write_attribute(:email, encrypted_email)
       write_attribute(:test_email, email_hash)
     end
-
-    # Override methods that search by email
-    def self.find_by_email(email)
-      Rails.logger.info "Searching UserEmail by test_email: #{email}"
-      find_by(test_email: email)
-    end
-
-    def self.find_by_email!(email)
-      Rails.logger.info "Searching UserEmail by test_email!: #{email}"
-      find_by!(test_email: email)
-    end
-
-    def self.exists_with_email?(email)
-      Rails.logger.info "Checking existence of UserEmail by test_email: #{email}"
-      exists?(test_email: email)
-    end
-  end
-
-  # Ensure other parts of the application use test_email for searches
-  module EmailOverride
-    def find_user_by_email(email)
-      Rails.logger.info "Searching User by test_email: #{email}"
-      UserEmail.find_by(test_email: email)&.user
-    end
-
-    def find_user_by_email!(email)
-      Rails.logger.info "Searching User by test_email!: #{email}"
-      UserEmail.find_by!(test_email: email)&.user
-    end
-  end
-
-  # Override methods in User model if necessary
-  require_dependency 'user'
-  class ::User
-    singleton_class.prepend EmailOverride
   end
 
 
